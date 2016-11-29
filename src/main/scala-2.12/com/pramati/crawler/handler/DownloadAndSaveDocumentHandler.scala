@@ -2,6 +2,7 @@ package com.pramati.crawler.handler
 
 import java.text.{DateFormat, SimpleDateFormat}
 import java.util.Date
+import java.util.concurrent.{ExecutorService, Executors, ForkJoinPool}
 import java.util.regex.{Matcher, Pattern}
 
 import com.pramati.crawler.downloader.WebPageDownloader
@@ -9,6 +10,9 @@ import com.pramati.crawler.writter.FileWritter
 import org.apache.log4j.Logger
 import org.jsoup.nodes.{Document, Element}
 import org.jsoup.select.Elements
+
+import scala.collection.parallel.{ExecutionContextTaskSupport, ForkJoinTaskSupport, ThreadPoolTaskSupport}
+import scala.concurrent.ExecutionContext
 
 class DownloadAndSaveDocumentHandler {
 
@@ -42,8 +46,6 @@ class DownloadAndSaveDocumentHandler {
   }
 
   def downloadAndSaveMsg(elem: Element,msgsURL: String): Unit = {
-
-    
     val URL: String = msgsURL.split("thread")(0) + elem.attr("href")
     val doc= WebPageDownloader.download(URL)
     doc match {
@@ -62,6 +64,7 @@ class DownloadAndSaveDocumentHandler {
       case Some(doc)=>
         val elements: Elements = doc.select("a[href*=@]")
         val elemArray :Array[Element]= elements.toArray(new Array[Element](elements.size()))
+        elemArray.par.tasksupport = new ForkJoinTaskSupport(new ForkJoinPool(1000))
         elemArray.par.foreach(i=>downloadAndSaveMsg(i,msgURL))
         parseIfNextPageExists(doc)
       case None=>logger.error("No document was provided.")
