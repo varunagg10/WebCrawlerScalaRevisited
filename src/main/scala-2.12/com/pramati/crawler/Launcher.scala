@@ -1,8 +1,10 @@
 package com.pramati.crawler
 
-class Launcher {
+import com.pramati.crawler.handler.DownloadAndSaveDocumentHandler
+
+object Launcher {
 
   def main(args: Array[String]): Unit = {
-
+    new DownloadAndSaveDocumentHandler().downloadAndSave
   }
 }

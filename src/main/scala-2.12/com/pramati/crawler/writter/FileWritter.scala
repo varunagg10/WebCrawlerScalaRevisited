@@ -6,8 +6,8 @@ import java.net.URLEncoder
 object FileWritter {
 
     def writeFileToDisk(fileName: String, data: String):Unit= {
-      val file = encodeFileName(fileName,"UTF-8");
-      val writer = new PrintWriter( new FileOutputStream(file))
+      //val file = encodeFileName(fileName,"UTF-8")
+      val writer = new PrintWriter( new FileOutputStream(fileName))
       writer.write("Hello Scala")
       writer.close()
     }
