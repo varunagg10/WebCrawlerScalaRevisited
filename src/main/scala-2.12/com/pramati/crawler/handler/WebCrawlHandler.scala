@@ -2,21 +2,20 @@ package com.pramati.crawler.handler
 
 import java.text.{DateFormat, SimpleDateFormat}
 import java.util.Date
-import java.util.concurrent.{ExecutorService, Executors, ForkJoinPool}
+import java.util.concurrent.ForkJoinPool
 import java.util.regex.{Matcher, Pattern}
 
 import com.pramati.crawler.downloader.WebPageDownloader
-import com.pramati.crawler.writter.FileWritter
+import com.pramati.crawler.utils.FileWritter
 import org.apache.log4j.Logger
 import org.jsoup.nodes.{Document, Element}
 import org.jsoup.select.Elements
 
-import scala.collection.parallel.{ExecutionContextTaskSupport, ForkJoinTaskSupport, ThreadPoolTaskSupport}
-import scala.concurrent.ExecutionContext
+import scala.collection.parallel.ForkJoinTaskSupport
 
-class DownloadAndSaveDocumentHandler {
+class WebCrawlHandler {
 
-  private val logger: Logger = Logger.getLogger(classOf[DownloadAndSaveDocumentHandler])
+  private val logger: Logger = Logger.getLogger(classOf[WebCrawlHandler])
 
   private val baseURL: String = "http://mail-archives.apache.org"
   private val URL: String = "mod_mbox/maven-users/"
@@ -51,7 +50,11 @@ class DownloadAndSaveDocumentHandler {
     doc match {
       case Some(doc) =>
         val fileName: String = filePath + "/" +FileWritter.encodeFileName(doc.select(".subject").select(".right").text + ":::" + doc.select(".date").select(".right").text,"UTF-8")
-        FileWritter.writeFileToDisk(fileName, doc.select("pre").text)
+        try {
+          FileWritter.writeFileToDisk(fileName, doc.select("pre").text)
+        }catch{
+            case e:Exception=>logger.error("Exception occured while writing file::",e)
+        }
       case None=>
     }
   }

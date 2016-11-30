@@ -1,4 +1,4 @@
-package com.pramati.crawler.writter
+package com.pramati.crawler.utils
 
 import java.io.{FileOutputStream, PrintWriter}
 import java.net.URLEncoder
