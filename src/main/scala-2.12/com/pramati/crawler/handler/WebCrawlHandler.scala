@@ -7,6 +7,7 @@ import java.util.regex.{Matcher, Pattern}
 
 import com.pramati.crawler.downloader.WebPageDownloader
 import com.pramati.crawler.utils.FileWritter
+import com.typesafe.config.ConfigFactory
 import org.apache.log4j.Logger
 import org.jsoup.nodes.{Document, Element}
 import org.jsoup.select.Elements
@@ -17,13 +18,15 @@ class WebCrawlHandler {
 
   private val logger: Logger = Logger.getLogger(classOf[WebCrawlHandler])
 
-  private val baseURL: String = "http://mail-archives.apache.org"
-  private val URL: String = "mod_mbox/maven-users/"
-  private val threadPoolSize: Int = 100
+  private val config = ConfigFactory.load()
+
+  private val baseURL: String = config.getString("baseURL")
+  private val URL: String = config.getString("URL")
+  private val threadPoolSize: Int = config.getInt("poolSize")
   private val sdf: SimpleDateFormat = new SimpleDateFormat("MMM yyyy")
-  private val filePath: String = "/home/varuna/IdeaProjects/output/webcrawler"
+  private val filePath: String = config.getString("filePath")
   private val pattern: String = "^([1-9]|0[1-9]|1[0-2])/(19|2[0-1])\\d{2}$"
-  private val maxAttempts: Int = 10
+  private val maxAttempts: Int = config.getInt("attempts")
 
   def downloadAndSave : Unit={
     val date: Option[Date] = getDateFromUser
@@ -67,7 +70,7 @@ class WebCrawlHandler {
       case Some(doc)=>
         val elements: Elements = doc.select("a[href*=@]")
         val elemArray :Array[Element]= elements.toArray(new Array[Element](elements.size()))
-        elemArray.par.tasksupport = new ForkJoinTaskSupport(new ForkJoinPool(1000))
+        elemArray.par.tasksupport = new ForkJoinTaskSupport(new ForkJoinPool(threadPoolSize))
         elemArray.par.foreach(i=>downloadAndSaveMsg(i,msgURL))
         parseIfNextPageExists(doc)
       case None=>logger.error("No document was provided.")
