@@ -28,6 +28,7 @@ class WebCrawlHandler {
   private val filePath: String = config.getString("filePath")
   private val pattern: String = "^([1-9]|0[1-9]|1[0-2])/(19|2[0-1])\\d{2}$"
   private val maxAttempts: Int = config.getInt("attempts")
+  private val ects = new ExecutionContextTaskSupport(ExecutionContext.fromExecutor(Executors.newFixedThreadPool(threadPoolSize)))
 
   def downloadAndSave : Unit={
     val date: Option[Date] = getDateFromUser
@@ -71,7 +72,7 @@ class WebCrawlHandler {
       case Some(doc)=>
         val elements: Elements = doc.select("a[href*=@]")
         val elemArray :Array[Element]= elements.toArray(new Array[Element](elements.size()))
-        elemArray.par.tasksupport = new ExecutionContextTaskSupport(ExecutionContext.fromExecutor(Executors.newFixedThreadPool(threadPoolSize)))
+        elemArray.par.tasksupport = ects
         elemArray.par.foreach(i=>downloadAndSaveMsg(i,msgURL))
         parseIfNextPageExists(doc)
       case None=>logger.error("No document was provided.")
