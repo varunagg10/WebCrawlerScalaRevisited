@@ -28,25 +28,29 @@ class WebCrawlHandler {
   private val filePath: String = config.getString("filePath")
   private val pattern: String = "^([1-9]|0[1-9]|1[0-2])/(19|2[0-1])\\d{2}$"
   private val maxAttempts: Int = config.getInt("attempts")
-  private val ects = new ExecutionContextTaskSupport(ExecutionContext.fromExecutor(Executors.newFixedThreadPool(threadPoolSize)))
+ // private val ects = new ExecutionContextTaskSupport(ExecutionContext.fromExecutor(Executors.newFixedThreadPool(threadPoolSize)))
 
   def downloadAndSave : Unit={
+
     val date: Option[Date] = getDateFromUser
     date match {
       case Some(date) => downloadMessageforMonthAndYear(date)
       case None=> logger.error("No date was received from user")
     }
+
   }
 
   private def downloadMessageforMonthAndYear(date: Date) {
+    var s = System.currentTimeMillis()
     val doc = WebPageDownloader.download(baseURL + "/" + URL)
     doc match{
       case Some(doc)=>
         val msgURL: String = baseURL + "/" + URL +parseMessagesLinkForDateFromDoc(date, doc)
         downloadAndSaveMsgsFromPageURL(msgURL)
-        System.out.println("done")
+
       case None=>
     }
+    System.out.print("done in :"+ (System.currentTimeMillis()-s))
   }
 
   def downloadAndSaveMsg(elem: Element,msgsURL: String): Unit = {
@@ -73,7 +77,7 @@ class WebCrawlHandler {
         val elements: Elements = doc.select("a[href*=@]")
         val elemArray :Array[Element]= elements.toArray(new Array[Element](elements.size()))
         val parArr =elemArray.par
-        parArr.tasksupport = ects
+        parArr.tasksupport = new ForkJoinTaskSupport(new ForkJoinPool(threadPoolSize))//ects
         parArr.foreach(i=>downloadAndSaveMsg(i,msgURL))
         parseIfNextPageExists(doc)
       case None=>logger.error("No document was provided.")
@@ -81,11 +85,29 @@ class WebCrawlHandler {
   }
 
   private def parseIfNextPageExists(doc: Document) {
-    val nextUrlElement: Elements = doc.select("a[href]:contains(Next)")
+    val nextUrlElement: Elements = doc.select("thead").select("a[href*=200510.mbox/thread]:not(:contains(Next))")
     var nextPageUrl: String = baseURL
+
     if (!nextUrlElement.isEmpty) {
-      nextPageUrl += nextUrlElement.first.attr("href")
-      downloadAndSaveMsgsFromPageURL(nextPageUrl)
+      val elemArray :Array[Element]= nextUrlElement.toArray(new Array[Element](nextUrlElement.size()))
+      val parArr =elemArray.par
+      parArr.tasksupport = new ForkJoinTaskSupport(new ForkJoinPool(threadPoolSize))//ects
+      parArr.foreach(i=>downloadAndSaveMsgsFromPageURLNoNextPage(baseURL+i.attr("href")))
+    }
+  }
+
+  private def downloadAndSaveMsgsFromPageURLNoNextPage(msgURL: String) {
+    System.out.println("downloading msgs from : " + msgURL)
+    val doc = WebPageDownloader.download(msgURL)
+
+    doc match {
+      case Some(doc)=>
+        val elements: Elements = doc.select("a[href*=@]")
+        val elemArray :Array[Element]= elements.toArray(new Array[Element](elements.size()))
+        val parArr =elemArray.par
+        parArr.tasksupport = new ForkJoinTaskSupport(new ForkJoinPool(threadPoolSize))//ects
+        parArr.foreach(i=>downloadAndSaveMsg(i,msgURL))
+      case None=>logger.error("No document was provided.")
     }
   }
 
