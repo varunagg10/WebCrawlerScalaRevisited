@@ -72,8 +72,9 @@ class WebCrawlHandler {
       case Some(doc)=>
         val elements: Elements = doc.select("a[href*=@]")
         val elemArray :Array[Element]= elements.toArray(new Array[Element](elements.size()))
-        elemArray.par.tasksupport = ects
-        elemArray.par.foreach(i=>downloadAndSaveMsg(i,msgURL))
+        val parArr =elemArray.par
+        parArr.tasksupport = ects
+        parArr.foreach(i=>downloadAndSaveMsg(i,msgURL))
         parseIfNextPageExists(doc)
       case None=>logger.error("No document was provided.")
     }
